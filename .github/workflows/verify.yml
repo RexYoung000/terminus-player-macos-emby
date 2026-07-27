@@ -39,7 +39,28 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/build/output"
       - name: Build and install
         run: cmake --build build --target install
+      - name: Bundle Homebrew dependencies
+        run: python3 scripts/fix-install-names.py "build/output/Terminus Player.app"
+      - name: Ad-hoc sign test build
+        run: |
+          codesign --force --deep --sign - "build/output/Terminus Player.app"
+          codesign --verify --deep --strict "build/output/Terminus Player.app"
       - name: Verify application bundle
         run: |
           test -x "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"
           file "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"
+          if otool -L "build/output/Terminus Player.app/Contents/MacOS/Terminus Player" | grep -E '/usr/local|/opt/homebrew'; then
+            echo "Application still references Homebrew paths." >&2
+            exit 1
+          fi
+      - name: Package test build
+        run: >
+          ditto -c -k --sequesterRsrc --keepParent
+          "build/output/Terminus Player.app"
+          TerminusPlayer-macos-intel-test.zip
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerminusPlayer-macos-intel-test
+          path: TerminusPlayer-macos-intel-test.zip
+          if-no-files-found: error

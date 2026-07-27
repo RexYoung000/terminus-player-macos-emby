@@ -17,13 +17,14 @@ def main(argv=tuple(sys.argv[1:])):
     libs_to_fix = deque()
     libs_to_fix.extend(file for file in bundle_path.glob('**/*.dylib'))
     libs_to_fix.extend(file for file in bundle_path.glob('**/*.so'))
+    libs_to_fix.extend(file for file in (bundle_path / 'Contents' / 'MacOS').iterdir() if file.is_file())
     while libs_to_fix:
         lib = libs_to_fix.popleft()
         # find the dependencies of the library
         result = subprocess.check_output(['otool', '-L', str(lib.resolve())], stderr=subprocess.STDOUT).decode('utf-8')
         for dependency in result.splitlines():
             dependency = dependency.strip().lstrip()
-            if dependency.startswith('/usr/local'):
+            if dependency.startswith(('/usr/local', '/opt/homebrew')):
                 # cut off trailing compatibility string
                 dependency = Path(dependency.split(' (compatibility')[0])
 
@@ -39,8 +40,9 @@ def main(argv=tuple(sys.argv[1:])):
                 # now we fix the path using install_name_tool
                 target = f'@executable_path/../Frameworks/{dependency.name}'
                 print(f'Fixing dependency {dependency} of {lib} to {target}')
-                subprocess.run(['install_name_tool', '-id', target, lib])
-                subprocess.run(['install_name_tool', '-change', str(dependency), target, lib])
+                if lib.suffix in ('.dylib', '.so'):
+                    subprocess.run(['install_name_tool', '-id', target, lib], check=True)
+                subprocess.run(['install_name_tool', '-change', str(dependency), target, lib], check=True)
 
 
 if __name__ == '__main__':
