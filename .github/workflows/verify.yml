@@ -1,0 +1,45 @@
+name: verify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  compatibility-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Test Emby compatibility layer
+        run: node --test tests/embyCompatibility.test.js
+
+  build-macos-intel:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 5.15.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "5.15.2"
+          modules: "qtwebengine"
+          cache: true
+      - name: Install build dependencies
+        run: brew install ninja mpv
+      - name: Download pinned web client
+        run: ./download_webclient.sh
+      - name: Configure
+        run: >
+          cmake -S . -B build -GNinja
+          -DQTROOT="$QT_ROOT_DIR"
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/build/output"
+      - name: Build and install
+        run: cmake --build build --target install
+      - name: Verify application bundle
+        run: |
+          test -x "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"
+          file "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"

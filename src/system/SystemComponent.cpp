@@ -323,12 +323,24 @@ QString SystemComponent::getNativeShellScript()
   auto path = SettingsComponent::Get().getExtensionPath();
   QLOG_DEBUG() << QString("Using path for extension: %1").arg(path);
 
-  QFile file {path + "nativeshell.js"};
-  file.open(QIODevice::ReadOnly);
-  auto nativeshellString = QTextStream(&file).readAll();
+  QFile webChannelFile {":/qtwebchannel/qwebchannel.js"};
+  QFile compatibilityFile {path + "embyCompatibility.js"};
+  QFile nativeShellFile {path + "nativeshell.js"};
+
+  if (!webChannelFile.open(QIODevice::ReadOnly) ||
+      !compatibilityFile.open(QIODevice::ReadOnly) ||
+      !nativeShellFile.open(QIODevice::ReadOnly))
+  {
+    QLOG_ERROR() << "Could not load native web-client integration scripts.";
+    return QString();
+  }
+
+  QString nativeshellString = QTextStream(&webChannelFile).readAll() + "\n" +
+                              QTextStream(&compatibilityFile).readAll() + "\n" +
+                              QTextStream(&nativeShellFile).readAll();
   QJsonObject clientData;
   clientData.insert("deviceName", QJsonValue::fromVariant(SettingsComponent::Get().getClientName()));
-  clientData.insert("scriptPath", QJsonValue::fromVariant("file:///" + path));
+  clientData.insert("scriptPath", QJsonValue::fromVariant(SettingsComponent::Get().getExtensionUrl()));
   clientData.insert("mode", QJsonValue::fromVariant(SettingsComponent::Get().value(SETTINGS_SECTION_MAIN, "layout").toString()));
   nativeshellString.replace("@@data@@", QJsonDocument(clientData).toJson(QJsonDocument::Compact).toBase64());
   return nativeshellString;

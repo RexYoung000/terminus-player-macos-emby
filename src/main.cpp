@@ -20,18 +20,10 @@
 #include "settings/SettingsComponent.h"
 #include "settings/SettingsSection.h"
 #include "ui/KonvergoWindow.h"
-#include "ui/KonvergoWindow.h"
 #include "Globals.h"
 #include "ui/ErrorMessage.h"
 #include "UniqueApplication.h"
 #include "utils/Log.h"
-
-#include "patch.h"
-#include <sys/stat.h>
-
-#ifdef Q_OS_MAC
-#include "PFMoveApplication.h"
-#endif
 
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
 #include "SignalManager.h"
@@ -84,43 +76,31 @@ void ShowLicenseInfo()
 
 /////////////////////////////////////////////////////////////////////////////////////////
 QStringList g_qtFlags = {
-  "--disable-web-security",
   "--enable-gpu-rasterization"
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
-#if defined(Q_OS_MAC)
-int patch() {
-  struct stat buffer;
-  const char *dirs[] = {"/usr/local/etc", "/usr/local/etc/fonts", "/usr/local/etc/fonts/conf.d"};
-  for (int i = 0; i != sizeof(dirs) / sizeof(char *); ++i) {
-    const char *path = dirs[i];
-    if (stat(path, &buffer) == -1) {
-      mkdir(path, 0700);
-    }
+QString commandLineValue(const QStringList& arguments, const QString& option,
+                         const QString& defaultValue)
+{
+  const QString assignmentPrefix = option + "=";
+  for (int i = 0; i < arguments.size(); i++)
+  {
+    if (arguments[i].startsWith(assignmentPrefix))
+      return arguments[i].mid(assignmentPrefix.size());
+
+    if (arguments[i] == option && i + 1 < arguments.size())
+      return arguments[i + 1];
   }
-  for (int i = 0; i < sizeof(PATCHES) / sizeof(char *); i += 2) {
-    const char *path = PATCHES[i];
-    const char *content = PATCHES[i + 1];
-    if (stat(path, &buffer) == 0) {
-      continue;
-    }
-    FILE *f = fopen(path, "wb");
-    fwrite(content, sizeof(char), strlen(content), f);
-    fclose(f);
-  }
+
+  return defaultValue;
 }
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
 {
   try
   {
-#if defined(Q_OS_MAC)
-    patch();
-#endif
-
     QCommandLineParser parser;
     parser.setApplicationDescription("Terminus Player");
     parser.addHelpOption();
@@ -143,6 +123,10 @@ int main(int argc, char *argv[])
     parser.addOption(scaleOption);
     parser.addOption(devOption);
 
+    QStringList arguments;
+    for (int i = 0; i < argc; i++)
+      arguments << QString::fromLocal8Bit(argv[i]);
+
     char **newArgv = appendCommandLineArguments(argc, argv, g_qtFlags);
     int newArgc = argc + g_qtFlags.size();
 
@@ -154,40 +138,25 @@ int main(int argc, char *argv[])
 #endif
 
     preinitQt();
+    auto scale = commandLineValue(arguments, "--scale-factor", "auto");
+    if (scale.isEmpty() || scale == "auto")
+      QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    else if (scale != "none")
+      qputenv("QT_SCALE_FACTOR", scale.toUtf8());
+
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     detectOpenGLEarly();
+    QtWebEngine::initialize();
 
-    QStringList arguments;
-    for (int i = 0; i < argc; i++)
-      arguments << QString::fromLatin1(argv[i]);
-
-    {
-      // This is kinda dumb. But in order for the QCommandLineParser
-      // to work properly we need to init if before we call process
-      // but we don't want to do that for the main application since
-      // we need to set the scale factor before we do that. So it becomes
-      // a small chicken-or-egg problem, which we "solve" by making
-      // this temporary console app.
-      //
-      QCoreApplication core(newArgc, newArgv);
-
-      // Now parse the command line.
-      parser.process(arguments);
-    }
+    QApplication app(newArgc, newArgv);
+    app.setApplicationName("Terminus Player");
+    parser.process(arguments);
 
     if (parser.isSet("licenses"))
     {
       ShowLicenseInfo();
       return EXIT_SUCCESS;
     }
-
-    auto scale = parser.value("scale-factor");
-    if (scale.isEmpty() || scale == "auto")
-      QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    else if (scale != "none")
-      qputenv("QT_SCALE_FACTOR", scale.toUtf8());
-
-    QApplication app(newArgc, newArgv);
-    app.setApplicationName("Terminus Player");
 
 #if defined(Q_OS_WIN) 
     // Setting window icon on OSX will break user ability to change it
@@ -197,10 +166,6 @@ int main(int argc, char *argv[])
 #if defined(Q_OS_LINUX)
   	// Set window icon on Linux using system icon theme
   	app.setWindowIcon(QIcon::fromTheme("com.github.iwalton3.jellyfin-media-player", QIcon(":/images/icon.png")));
-#endif
-
-#if defined(Q_OS_MAC) && defined(NDEBUG)
-    PFMoveToApplicationsFolderIfNecessary();
 #endif
 
     UniqueApplication* uniqueApp = new UniqueApplication();
@@ -227,8 +192,6 @@ int main(int argc, char *argv[])
     ComponentManager::Get().initialize();
 
     SettingsComponent::Get().setCommandLineValues(parser.optionNames());
-
-    QtWebEngine::initialize();
 
     // load QtWebChannel so that we can register our components with it.
     QQmlApplicationEngine *engine = Globals::Engine();

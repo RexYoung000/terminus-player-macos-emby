@@ -1,5 +1,6 @@
 #include "SettingsComponent.h"
 #include "SettingsSection.h"
+#include "WebClientServer.h"
 #include "Paths.h"
 #include "utils/Utils.h"
 #include "QsLog.h"
@@ -12,6 +13,7 @@
 #include <QJsonArray>
 #include <QList>
 #include <QSettings>
+#include <QFileInfo>
 #include "input/InputComponent.h"
 #include "system/SystemComponent.h"
 #include "Version.h"
@@ -19,7 +21,10 @@
 #define OLDEST_PREVIOUS_VERSION_KEY "oldestPreviousVersion"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SettingsComponent::SettingsComponent(QObject *parent) : ComponentBase(parent), m_settingsVersion(-1)
+SettingsComponent::SettingsComponent(QObject *parent)
+  : ComponentBase(parent),
+    m_settingsVersion(-1),
+    m_webClientServer(nullptr)
 {
 }
 
@@ -676,6 +681,19 @@ bool SettingsComponent::componentInitialize()
 
   load();
 
+  const bool usesBundledWebClient =
+    value(SETTINGS_SECTION_PATH, "startupurl_desktop").toString() == "bundled" ||
+    value(SETTINGS_SECTION_PATH, "startupurl_extension").toString() == "bundled";
+
+  if (usesBundledWebClient)
+  {
+    m_webClientServer = new WebClientServer(this);
+    const QString webClientRoot = QFileInfo(Paths::webClientPath("desktop")).absolutePath();
+    const QString extensionRoot = Paths::webExtensionPath("extension");
+    if (!m_webClientServer->start(webClientRoot, extensionRoot))
+      return false;
+  }
+
   // add our AudioSettingsController that will inspect audio settings and react.
   // then run the signal the first time to make sure that we set the proper visibility
   // on the items from the start.
@@ -724,8 +742,9 @@ QString SettingsComponent::getWebClientUrl(bool desktop)
 
   if (url == "bundled")
   {
-    auto path = Paths::webClientPath("desktop");
-    url = "file:///" + path;
+    if (!m_webClientServer)
+      return QString();
+    url = m_webClientServer->baseUrl() + "/index.html";
   }
 
   QLOG_DEBUG() << "Using web-client URL: " << url;
@@ -744,6 +763,22 @@ QString SettingsComponent::getExtensionPath()
   {
     auto path = Paths::webExtensionPath("extension");
     url = path;
+  }
+
+  return url;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+QString SettingsComponent::getExtensionUrl()
+{
+  QString url = SettingsComponent::Get().value(
+    SETTINGS_SECTION_PATH, "startupurl_extension").toString();
+
+  if (url == "bundled")
+  {
+    if (!m_webClientServer)
+      return QString();
+    url = m_webClientServer->baseUrl() + "/extension/";
   }
 
   return url;
@@ -785,4 +820,3 @@ void SettingsComponent::setCommandLineValues(const QStringList& values)
       setValue(SETTINGS_SECTION_MAIN, "layout", "tv");
   }
 }
-

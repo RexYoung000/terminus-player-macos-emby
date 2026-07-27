@@ -1055,14 +1055,9 @@ void PlayerComponent::setAudioConfiguration()
 
   updateAudioDevice();
 
-  QString resampleOpts = "";
   bool normalize = SettingsComponent::Get().value(SETTINGS_SECTION_AUDIO, "normalize").toBool();
-  resampleOpts += QString(":normalize=") + (normalize ? "yes" : "no");
-
-  // Make downmix more similar to PHT.
-  resampleOpts += ":o=[surround_mix_level=1]";
-
-  mpv::qt::set_property(m_mpv, "af-defaults", "lavrresample" + resampleOpts);
+  mpv::qt::set_property(m_mpv, "audio-normalize-downmix", normalize);
+  mpv::qt::set_property(m_mpv, "audio-swresample-o", "surround_mix_level=1");
 
   m_passthroughCodecs.clear();
 
@@ -1116,7 +1111,7 @@ void PlayerComponent::setAudioConfiguration()
   }
   else
   {
-    mpv::qt::command(m_mpv, QStringList() << "af" << "del" << "@ac3");
+    mpv::qt::command(m_mpv, QStringList() << "af" << "remove" << "@ac3");
   }
 
   QVariant device = SettingsComponent::Get().value(SETTINGS_SECTION_AUDIO, "device");
@@ -1577,4 +1572,3 @@ QString PlayerComponent::videoInformation() const
   info.flush();
   return infoStr;
 }
-

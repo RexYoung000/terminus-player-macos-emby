@@ -24,6 +24,7 @@
 
 
 class SettingsSection;
+class WebClientServer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class SettingsComponent : public ComponentBase
@@ -59,6 +60,7 @@ public:
   Q_INVOKABLE QVariantList settingDescriptions();
   Q_INVOKABLE QString getWebClientUrl(bool desktop);
   Q_INVOKABLE QString getExtensionPath();
+  Q_INVOKABLE QString getExtensionUrl();
   Q_INVOKABLE QString getClientName();
   Q_INVOKABLE bool ignoreSSLErrors();
 
@@ -111,6 +113,7 @@ private:
   int m_sectionIndex;
 
   QString m_oldestPreviousVersion;
+  WebClientServer* m_webClientServer;
 
   void loadConf(const QString& path, bool storage);
 };

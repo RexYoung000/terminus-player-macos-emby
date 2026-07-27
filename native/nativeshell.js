@@ -1,5 +1,7 @@
 const viewdata = JSON.parse(window.atob("@@data@@"));
 
+window.TerminusEmbyCompatibility.install(window);
+
 const features = [
     "filedownload",
     "displaylanguage",
@@ -100,7 +102,9 @@ function getDeviceProfile() {
 }
 
 async function createApi() {
-    await loadScript('qrc:///qtwebchannel/qwebchannel.js');
+    if (typeof QWebChannel === 'undefined') {
+        await loadScript('qrc:///qtwebchannel/qwebchannel.js');
+    }
     const channel = await new Promise((resolve) => {
         /*global QWebChannel */
         new QWebChannel(window.qt.webChannelTransport, resolve);

@@ -272,7 +272,7 @@
             return new Promise((resolve) => {
                 const val = options.url;
                 this._currentSrc = val;
-                console.debug(`playing url: ${val}`);
+                console.debug('starting video playback');
 
                 // Convert to seconds
                 const ms = (options.playerStartPositionTicks || 0) / 10000;
