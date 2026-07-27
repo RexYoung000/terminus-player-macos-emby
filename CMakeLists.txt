@@ -70,6 +70,15 @@ endif(Qt5_POSITION_INDEPENDENT_CODE)
 add_subdirectory(external)
 add_subdirectory(src)
 
+enable_testing()
+add_executable(LogRedactionTest
+  tests/LogRedactionTest.cpp
+  src/utils/LogRedaction.cpp
+)
+target_include_directories(LogRedactionTest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(LogRedactionTest Qt5::Core)
+add_test(NAME log-redaction COMMAND LogRedactionTest)
+
 include(CPackConfiguration)
 
 add_custom_target(install_app_bundle COMMAND ${CMAKE_COMMAND} -P cmake_install.cmake DEPENDS JellyfinMediaPlayer)

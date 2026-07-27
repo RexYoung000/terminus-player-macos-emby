@@ -4,6 +4,7 @@ add_sources(
   PlatformUtils.cpp PlatformUtils.h
   Utils.cpp Utils.h
   Log.cpp Log.h
+  LogRedaction.cpp LogRedaction.h
 )
 
 if(APPLE)

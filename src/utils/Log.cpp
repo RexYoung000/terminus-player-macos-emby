@@ -11,6 +11,7 @@
 #include "shared/Names.h"
 #include "shared/Paths.h"
 #include "settings/SettingsComponent.h"
+#include "LogRedaction.h"
 #include "Version.h"
 
 using namespace QsLogging;
@@ -44,29 +45,9 @@ static void qtMessageOutput(QtMsgType type, const QMessageLogContext& context, c
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-static void elidePattern(QString& msg, const QString& substring, int chars)
-{
-  int start = 0;
-  while (true)
-  {
-    start = msg.indexOf(substring, start);
-    if (start < 0 || start + substring.length() + chars > msg.length())
-      break;
-    start += substring.length();
-    for (int n = 0; n < chars; n++)
-      msg[start + n] = QChar('x');
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 void Log::CensorAuthTokens(QString& msg)
 {
-  elidePattern(msg, "api_key=", 20);
-  elidePattern(msg, "X-MediaBrowser-Token%3D", 20);
-  elidePattern(msg, "X-MediaBrowser-Token=", 20);
-  elidePattern(msg, "api_key=", 20);
-  elidePattern(msg, "ApiKey=", 20);
-  elidePattern(msg, "AccessToken=", 20);
+  LogRedaction::CensorAuthTokens(msg);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

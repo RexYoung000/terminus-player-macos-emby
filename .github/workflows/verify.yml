@@ -39,6 +39,10 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/build/output"
       - name: Build and install
         run: cmake --build build --target install
+      - name: Test native log redaction
+        run: |
+          cmake --build build --target LogRedactionTest
+          ctest --test-dir build --output-on-failure
       - name: Bundle Homebrew dependencies
         run: python3 scripts/fix-install-names.py "build/output/Terminus Player.app"
       - name: Ad-hoc sign test build

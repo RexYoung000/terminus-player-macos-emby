@@ -352,7 +352,7 @@ void SystemComponent::checkForUpdates()
   if (SettingsComponent::Get().value(SETTINGS_SECTION_MAIN, "checkForUpdates").toBool()) {
 #if !defined(Q_OS_WIN) && !defined(Q_OS_MAC)
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QString checkUrl = "https://github.com/jellyfin/jellyfin-media-player/releases/latest";
+    QString checkUrl = "https://github.com/RexYoung000/terminus-player-macos-emby/releases/latest";
     QUrl qCheckUrl = QUrl(checkUrl);
     QLOG_DEBUG() << QString("Checking URL for updates: %1").arg(checkUrl);
     QNetworkRequest req(qCheckUrl);

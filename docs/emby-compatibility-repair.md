@@ -15,14 +15,15 @@
 - 原始项目源码已从 `Terminus-Media/jellyfin-media-player` 克隆。
 - 个人维护仓库以 `main` 作为默认分支；第三方上游保留为 `upstream`，
   便于后续审查和同步来源变化。
-- 已通过成品应用二进制补丁解决 macOS 启动崩溃，修复版保存在
-  `artifacts/TerminusPlayer-1.7.1-macos-startup-fixed.dmg`。
+- 已删除导致 macOS 启动崩溃的系统字体目录写入逻辑，并通过 Intel macOS
+  自动构建、依赖打包和临时签名验证。
+- 内置网页已改为仅绑定 Loopback 的固定 HTTP 来源，不再从 `file://`
+  页面发起认证请求。
+- Emby Quick Connect 缺失接口的兼容层已通过自动测试。
+- 便携 ZIP 测试包已经能由 GitHub Actions 重复生成。
 - 服务器、HTTPS、DNS 和 443 端口均已确认正常。
-- 当前阻塞发生在客户端兼容层：
-  - 内置 Jellyfin Web 版本约为 10.7.6。
-  - 目标服务器为 Emby 4.8.10。
-  - 客户端请求 `/QuickConnect/Status` 时收到 `404`。
-  - 旧请求逻辑随后误报 `Connection Failure`。
+- 当前剩余阻塞是本机真实界面验收：目标服务器为 Emby 4.8.10，需要确认
+  服务器连接页、账号登录、媒体库和播放链路与自动测试结果一致。
 
 ## 第一阶段范围
 
@@ -40,6 +41,13 @@ Qt、MPV 或 Web 客户端技术栈。
 - 修复 Emby 用户名密码认证请求与失败处理。
 - 将已经失效的 `af-defaults=lavrresample` 和 `af del` 替换为当前 MPV
   支持的音频属性与过滤器命令。
+- 将个人维护开发版标记为 `1.8.0-dev`，与上游旧版 `1.6.1` 和历史
+  macOS 成品 `1.7.1` 区分；macOS Bundle 使用符合系统格式要求的
+  `1.8.0`。
+- 更新检查只访问 `RexYoung000/terminus-player-macos-emby` 的 Release，
+  不再把 Jellyfin 官方版本误报为本项目更新。
+- 日志中的查询参数、JSON 字段及 Bearer、MediaBrowser、`X-Emby-Token`
+  认证头必须整段脱敏，不能只遮住固定长度后保留剩余内容。
 - 重新签名、打包并执行真实界面验收。
 
 第一阶段仍以 Intel `x86_64` + Rosetta 2 为交付基线。Apple Silicon
@@ -61,6 +69,8 @@ Qt、MPV 或 Web 客户端技术栈。
 - 选择媒体后能开始播放，音频、视频和字幕至少完成一次基础验证。
 - 运行日志不再出现 `Request scheme 'file' is unsupported`、
   `af-defaults is deprecated` 或 `lavrresample doesn't exist`。
+- 测试包显示 `1.8.0-dev`，且更新入口不跳转到 Jellyfin 官方仓库。
+- 自动测试确认不同长度和不同格式的认证令牌不会保留在日志文本中。
 - 测试后 `/usr/local/etc/fonts` 仍未被应用创建或修改。
 
 ## 安全与隐私
