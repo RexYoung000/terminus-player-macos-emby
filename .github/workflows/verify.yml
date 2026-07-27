@@ -10,17 +10,17 @@ jobs:
   compatibility-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
       - name: Test Emby compatibility layer
         run: node --test tests/embyCompatibility.test.js
 
   build-macos-intel:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Qt 5.15.2
         uses: jurplel/install-qt-action@v4
         with:
