@@ -28,7 +28,7 @@ jobs:
           modules: "qtwebengine"
           cache: true
       - name: Install build dependencies
-        run: brew install ninja mpv
+        run: brew install ninja mpv sdl3
       - name: Download pinned web client
         run: ./download_webclient.sh
       - name: Configure
@@ -44,7 +44,10 @@ jobs:
           cmake --build build --target LogRedactionTest
           ctest --test-dir build --output-on-failure
       - name: Bundle Homebrew dependencies
-        run: python3 scripts/fix-install-names.py "build/output/Terminus Player.app"
+        run: >
+          python3 scripts/fix-install-names.py
+          --runtime-library "$(brew --prefix sdl3)/lib/libSDL3.dylib"
+          "build/output/Terminus Player.app"
       - name: Ad-hoc sign test build
         run: |
           codesign --force --deep --sign - "build/output/Terminus Player.app"
@@ -52,9 +55,26 @@ jobs:
       - name: Verify application bundle
         run: |
           test -x "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"
+          test -f "build/output/Terminus Player.app/Contents/Frameworks/libSDL3.dylib"
           file "build/output/Terminus Player.app/Contents/MacOS/Terminus Player"
           if otool -L "build/output/Terminus Player.app/Contents/MacOS/Terminus Player" | grep -E '/usr/local|/opt/homebrew'; then
             echo "Application still references Homebrew paths." >&2
+            exit 1
+          fi
+      - name: Smoke test application startup
+        run: |
+          app_log="$RUNNER_TEMP/terminus-player-startup.log"
+          "build/output/Terminus Player.app/Contents/MacOS/Terminus Player" >"$app_log" 2>&1 &
+          app_pid=$!
+          sleep 15
+          if ! kill -0 "$app_pid" 2>/dev/null; then
+            cat "$app_log"
+            exit 1
+          fi
+          kill "$app_pid"
+          wait "$app_pid" || true
+          if grep -E "Fatal error|Failed loading SDL3 library" "$app_log"; then
+            cat "$app_log"
             exit 1
           fi
       - name: Package test build

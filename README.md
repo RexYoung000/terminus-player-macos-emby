@@ -53,7 +53,7 @@ Terminus Player 的个人维护分支，面向现代 macOS 持续修复和优化
 
 | 能力 | 环境 | 状态 |
 | --- | --- | --- |
-| 应用启动 | macOS 26.6 / Apple Silicon / Rosetta 2 | 源码修复与 Intel 测试包构建已通过，待真实界面验收 |
+| 应用启动 | macOS 26.6 / Apple Silicon / Rosetta 2 | 已修复原启动崩溃；首个 CI 包发现 SDL3 动态依赖遗漏，正在补包并复验 |
 | HTTPS 服务器连接 | Emby 4.8.10 | 已验证服务器发现接口返回正常 |
 | Quick Connect 能力判断 | Emby 4.8.10 | 已实现缺失接口兼容并通过自动测试，待真实界面验收 |
 | 用户名密码登录 | Emby 4.8.10 | 连接来源已修复，待真实账号验收 |

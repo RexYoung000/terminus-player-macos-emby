@@ -8,6 +8,12 @@ import shutil
 
 def main(argv=tuple(sys.argv[1:])):
     arg_parser = argparse.ArgumentParser(description='Fix third party library paths in .app bundles.')
+    arg_parser.add_argument(
+        '--runtime-library',
+        action='append',
+        default=[],
+        help='Additional library loaded dynamically at runtime; may be repeated.',
+    )
     arg_parser.add_argument('bundle', metavar='BUNDLE', type=str, nargs=1)
     arguments = arg_parser.parse_args(argv)
 
@@ -15,6 +21,19 @@ def main(argv=tuple(sys.argv[1:])):
     framework_path = bundle_path / 'Contents' / 'Frameworks'
     framework_libs = set(file.name for file in framework_path.glob('*.dylib')).union(set(file.name for file in framework_path.glob('*.so')))
     libs_to_fix = deque()
+
+    for runtime_library in arguments.runtime_library:
+        source = Path(runtime_library)
+        if not source.is_file():
+            raise FileNotFoundError(f'Runtime library does not exist: {source}')
+
+        destination = framework_path / source.name
+        if destination.name not in framework_libs:
+            shutil.copy(str(source.resolve()), str(destination))
+            framework_libs.add(destination.name)
+            print(f'Copied runtime library {source} to {destination}')
+        libs_to_fix.append(destination)
+
     libs_to_fix.extend(file for file in bundle_path.glob('**/*.dylib'))
     libs_to_fix.extend(file for file in bundle_path.glob('**/*.so'))
     libs_to_fix.extend(file for file in (bundle_path / 'Contents' / 'MacOS').iterdir() if file.is_file())
