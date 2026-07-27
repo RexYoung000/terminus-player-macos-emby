@@ -15,13 +15,23 @@
         return input && input.url ? input.url : '';
     }
 
-    function isQuickConnectStatus(url, baseUrl) {
+    function quickConnectFallback(url, baseUrl) {
         try {
             const parsed = new URL(url, baseUrl || 'http://127.0.0.1/');
-            return /^\/quickconnect\/status\/?$/i.test(parsed.pathname);
+            if (/^\/quickconnect\/enabled\/?$/i.test(parsed.pathname)) {
+                return false;
+            }
+            if (/^\/quickconnect\/status\/?$/i.test(parsed.pathname)) {
+                return 'Unavailable';
+            }
         } catch (error) {
-            return false;
+            return undefined;
         }
+        return undefined;
+    }
+
+    function isQuickConnectStatus(url, baseUrl) {
+        return quickConnectFallback(url, baseUrl) === 'Unavailable';
     }
 
     function install(target) {
@@ -34,11 +44,15 @@
         target.fetch = async function(input, init) {
             const response = await originalFetch(input, init);
             const url = requestUrl(input);
+            const fallback = quickConnectFallback(
+                url,
+                target.location && target.location.href
+            );
 
             if ((response.status === 404 || response.status === 405) &&
-                isQuickConnectStatus(url, target.location && target.location.href)) {
+                fallback !== undefined) {
                 console.info('Quick Connect is unavailable on this server.');
-                return new target.Response(JSON.stringify('Unavailable'), {
+                return new target.Response(JSON.stringify(fallback), {
                     status: 200,
                     headers: {
                         'Content-Type': 'application/json'
@@ -55,6 +69,7 @@
 
     return {
         install,
-        isQuickConnectStatus
+        isQuickConnectStatus,
+        quickConnectFallback
     };
 }));

@@ -350,7 +350,7 @@ QString SystemComponent::getNativeShellScript()
 void SystemComponent::checkForUpdates()
 {
   if (SettingsComponent::Get().value(SETTINGS_SECTION_MAIN, "checkForUpdates").toBool()) {
-#if !defined(Q_OS_WIN) && !defined(Q_OS_MAC)
+#if !defined(Q_OS_WIN)
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
     QString checkUrl = "https://github.com/RexYoung000/terminus-player-macos-emby/releases/latest";
     QUrl qCheckUrl = QUrl(checkUrl);
@@ -370,9 +370,11 @@ void SystemComponent::updateInfoHandler(QNetworkReply* reply)
 {
   if (reply->error() == QNetworkReply::NoError) {
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    if(statusCode == 302) {
+    if(statusCode == 301 || statusCode == 302 || statusCode == 307 || statusCode == 308) {
       QUrl redirectUrl = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
       emit updateInfoEmitted(redirectUrl.toString());
+    } else if (statusCode == 200 && reply->url().path().contains("/releases/tag/")) {
+      emit updateInfoEmitted(reply->url().toString());
     }
   }
 }

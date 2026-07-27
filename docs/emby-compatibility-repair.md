@@ -27,6 +27,16 @@
   对运行时加载库的隐式依赖，未出现在普通 Mach-O 依赖扫描中。
 - 当前先补齐 SDL3 运行时依赖及启动冒烟测试，再继续 Emby 4.8.10 的
   服务器连接页、账号登录、媒体库和播放链路验收。
+- 本机 HTTP 来源恢复 Service Worker 后，macOS 更新插件直接跨域请求 GitHub
+  会被 CORS 拒绝。更新检查应改由 Qt 原生网络层完成；无法提供 SSL 的平台
+  静默跳过，不能在网页层绕过同源策略。
+- 真实服务器地址已成功进入登录页，证明 TLS、`/System/Info/Public` 和
+  基础同源请求正常。登录页随后请求 `/QuickConnect/Enabled`，Emby 返回
+  `404`，旧客户端触发自动重连并将后续认证失败统一显示为
+  `Connection Failure`。
+- 兼容层需同时按响应类型处理两个缺失接口：`/QuickConnect/Enabled`
+  返回布尔 `false`，`/QuickConnect/Status` 返回字符串 `Unavailable`。
+  用户名密码已仅在取消“Remember Me”的状态下用于一次真实认证测试。
 
 ## 第一阶段范围
 
