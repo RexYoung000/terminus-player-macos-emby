@@ -71,7 +71,16 @@ jobs:
             cat "$app_log"
             exit 1
           fi
-          kill "$app_pid"
+          kill "$app_pid" 2>/dev/null || true
+          for attempt in 1 2 3 4 5; do
+            if ! kill -0 "$app_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if kill -0 "$app_pid" 2>/dev/null; then
+            kill -9 "$app_pid"
+          fi
           wait "$app_pid" || true
           if grep -E "Fatal error|Failed loading SDL3 library" "$app_log"; then
             cat "$app_log"
