@@ -38,6 +38,21 @@ function(copy_resources target)
       )
     endforeach()
   endif(RESOURCE_LIST)
+
+  get_property(DIRECTORY_RESOURCE_LIST GLOBAL PROPERTY _${target}_DIRECTORY_RESOURCE_LIST)
+  foreach(RF ${DIRECTORY_RESOURCE_LIST})
+    string(REPLACE "|" ";" PARTS "${RF}")
+    list(GET PARTS 0 SOURCE_DIR)
+    list(GET PARTS 1 _TARGET_DIR)
+    add_custom_command(
+      TARGET ${target}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${TARGET_ROOT}/${_TARGET_DIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+              "${SOURCE_DIR}" "${TARGET_ROOT}/${_TARGET_DIR}"
+      VERBATIM
+    )
+  endforeach()
 endfunction()
 
 #############################################################
@@ -47,7 +62,12 @@ function(add_resources)
   cmake_parse_arguments(BD "" "${args1}" "${args2}" ${ARGN})
   
   foreach(_BDFILE ${BD_SOURCES})
-    if(IS_DIRECTORY ${_BDFILE})
+    if(IS_DIRECTORY ${_BDFILE} AND NOT XCODE)
+      set_property(
+        GLOBAL APPEND PROPERTY _${BD_TARGET}_DIRECTORY_RESOURCE_LIST
+        "${_BDFILE}|${BD_DEST}"
+      )
+    elseif(IS_DIRECTORY ${_BDFILE})
       file(GLOB _DIRCONTENTS ${_BDFILE}/*)
       foreach(_BDDFILE ${_DIRCONTENTS})
         get_filename_component(_BDFILE_NAME ${_BDDFILE} NAME)
