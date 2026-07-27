@@ -1,134 +1,123 @@
-# Terminus Media Player
+# Terminus Player macOS & Emby 适配版
 
-Desktop client using jellyfin-web with embedded MPV player. Supports Windows, Mac OS,
-and Linux. Media plays within the same window using the jellyfin-web interface unlike
-Jellyfin Desktop. Supports audio passthrough. Based on [Plex Media Player](https://github.com/plexinc/plex-media-player).
+Terminus Player 的个人维护分支，面向现代 macOS 持续修复和优化，并以兼容
+当前 Emby 服务器为主要目标。项目使用内嵌网页界面浏览媒体库，通过 MPV
+完成本地视频播放。
 
-![Screenshot of Jellyfin Media Player](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/master/images/jmp-player-win.png)
+> 当前处于适配阶段：macOS 启动问题已经定位并验证修复方案；Emby 4.8
+> 的服务器连接已经验证，账号认证和完整播放链路仍在修复与测试中。
+> 请以本文的兼容状态为准，不将开发目标理解为已完成承诺。
 
-Downloads:
- - [Windows, Mac, and Linux Releases](https://github.com/jellyfin/jellyfin-media-player/releases)
- - [Flathub (Linux)](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-media-player)
+## 项目初衷
 
-Related Documents:
- - Corresponding web client: [Repo](https://github.com/iwalton3/jellyfin-web-jmp/) [Release](https://github.com/iwalton3/jellyfin-web-jmp/releases/)
- - API Docs in [client-api.md](https://github.com/iwalton3/jellyfin-media-player/blob/master/client-api.md)
- - Tip: For help building, look at the GitHub Actions file!
+[Terminus Media Player](https://github.com/Terminus-Media/jellyfin-media-player)
+曾提供支持 macOS、Windows 和 Linux 的开源桌面播放器，但现有 macOS
+安装包发布较早，在现代 macOS 和新版本媒体服务器上逐渐出现兼容问题：
 
-## Building at a glance (Linux)
+- 原 macOS 应用未经开发者签名和苹果公证。
+- 现有安装包只有 Intel `x86_64` 架构，在 Apple Silicon 上依赖 Rosetta 2。
+- 启动逻辑会尝试写入 `/usr/local/etc/fonts`，在现代 macOS 上可能直接崩溃。
+- 内置网页客户端版本较旧，对当前 Emby 的能力判断、认证和错误处理不完整。
+- 服务器实际在线时，客户端可能因为缺少 Jellyfin 专用接口而误报
+  `Connection Failure`。
 
-```bash
-sudo apt install autoconf automake libtool libharfbuzz-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libvdpau-dev libva-dev mesa-common-dev libegl1-mesa-dev yasm libasound2-dev libpulse-dev libuchardet-dev zlib1g-dev libfribidi-dev git libgnutls28-dev libgl1-mesa-dev libsdl2-dev cmake wget python g++ qtwebengine5-dev qtquickcontrols2-5-dev libqt5x11extras5-dev libcec-dev qml-module-qtquick-controls qml-module-qtwebengine qml-module-qtwebchannel qtbase5-private-dev
-mkdir jmp; cd jmp
-git clone https://github.com/mpv-player/mpv-build.git
-cd mpv-build
-echo --enable-libmpv-shared > mpv_options
-echo --disable-cplayer >> mpv_options
-./rebuild -j4
-sudo ./install
-sudo ldconfig
-cd ~/jmp/
-git clone git://github.com/iwalton3/jellyfin-media-player
-cd jellyfin-media-player
-./download_webclient.sh
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local/ ..
-make -j4
-sudo make install
-rm -rf ~/jmp/
+这个分支的目标不是简单更换名称或重新打包旧版本，而是建立一个可持续维护、
+可验证、可回滚的个人适配版本，让现代 Mac 用户能够继续通过开源桌面播放器
+连接自己的 Emby 媒体服务，浏览媒体库并播放视频。
+
+## 优化方向
+
+### 现代 macOS
+
+- 修复启动阶段对系统字体目录的不安全写入。
+- 在不关闭 Gatekeeper 或 SIP 的前提下完成本地运行与验证。
+- 改善 Apple Silicon + Rosetta 2 环境下的启动和播放稳定性。
+- 评估 Apple Silicon 原生构建、正式签名和苹果公证。
+
+### 当前 Emby 兼容
+
+- 根据服务器能力判断功能，不默认所有服务端都提供 Jellyfin 接口。
+- 兼容 Emby 4.8 系列的服务器发现、用户名密码认证和会话建立。
+- 修正 Quick Connect 接口缺失时的错误处理，避免误报服务器离线。
+- 验证媒体库加载、海报与元数据、视频播放、音轨和字幕。
+
+### 播放与体验
+
+- 保留 MPV 播放内核及硬件解码能力。
+- 检查现代 macOS 下的音频输出、全屏、刷新率和字幕表现。
+- 清理过时配置和无效播放参数，降低启动及播放阶段的噪声错误。
+- 为修复包建立可重复的构建、签名、打包和验收流程。
+
+## 当前兼容状态
+
+| 能力 | 环境 | 状态 |
+| --- | --- | --- |
+| 应用启动 | macOS 26.6 / Apple Silicon / Rosetta 2 | 修复方案已验证，待落实为正式源码构建 |
+| HTTPS 服务器连接 | Emby 4.8.10 | 已验证服务器发现接口返回正常 |
+| Quick Connect 能力判断 | Emby 4.8.10 | 修复中，服务端不存在 Jellyfin 对应接口 |
+| 用户名密码登录 | Emby 4.8.10 | 修复中 |
+| 媒体库浏览 | Emby 4.8.10 | 待登录修复后验证 |
+| 视频、音轨与字幕播放 | Emby 4.8.10 | 待验证 |
+| Apple Silicon 原生运行 | macOS | 尚未支持，目前使用 Rosetta 2 |
+| 开发者 ID 签名与苹果公证 | macOS | 尚未支持 |
+
+详细问题、范围和验收标准见
+[Emby 兼容修复说明](docs/emby-compatibility-repair.md)。
+
+## 近期路线
+
+1. 将 macOS 启动修复从成品补丁落实到可维护实现。
+2. 修复 Emby 4.8 的 Quick Connect 能力判断与账号认证。
+3. 完成媒体库、播放、音轨、字幕和断线恢复验收。
+4. 清理现代 macOS 下已经失效的播放器参数。
+5. 建立可重复的 macOS 构建、签名和 DMG 打包流程。
+6. 评估更新 Qt、内置网页客户端和 Apple Silicon 原生构建的成本。
+
+## 开发与构建
+
+当前上游构建体系基于 Qt 5.15.2、Qt WebEngine、CMake/Ninja 和 MPV。
+历史构建方式可参考
+[Terminus-Media 上游仓库](https://github.com/Terminus-Media/jellyfin-media-player)
+及项目内的 GitHub Actions 配置。
+
+第一阶段会优先建立当前 macOS 环境可重复执行的修复和验收流程，再决定是否
+整体升级 Qt 与网页客户端，避免在没有完成核心登录、播放验证前扩大改造范围。
+
+本地调试信息默认位于：
+
+```text
+~/Library/Logs/Terminus Player/
+~/Library/Application Support/Terminus Player/
 ```
 
-## Building for Windows
+服务器地址、用户名、密码、访问令牌、Cookie 和运行日志不得提交到 Git。
 
-Please install:
- - [cmake](https://cmake.org/download/) - cmake-3.20.0-windows-x86_64.msi
-   - Add cmake to the path.
- - [ninja](https://github.com/ninja-build/ninja/releases)
-   - Place this in the build directory.
- - [QT](https://www.qt.io/download-thank-you?hsLang=en)
-   - This package is huge. You also need to make a QT account...
-   - Check "MSVC 2019 64-bit" and "Qt WebEngine" under QT 5.15.2.
- - [VS2019 Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
-   - Again this will use a lot of disk space. The installer is small though.
- - [libmpv1](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/)
-   - Place the contents in the build directory, in a subfolder called `mpv`.
-   - Move the contents of the `include` folder to an `mpv` folder inside the `include` folder.
-   - Move the `mpv-1.dll` to `mpv.dll`.
- - [WIX](https://wixtoolset.org/releases/v3.11.2/stable)
+## 项目关系
 
-You need to run these commands in git bash.
+本项目的来源关系如下：
 
-```bash
-git clone https://github.com/iwalton3/jellyfin-media-player
-cd jellyfin-media-player
-./download_webclient.sh
-cd build
-```
+1. 本个人维护分支基于
+   [Terminus-Media/jellyfin-media-player](https://github.com/Terminus-Media/jellyfin-media-player)。
+2. Terminus Media Player 基于
+   [Jellyfin Media Player / jellyfin-desktop-qt](https://github.com/jellyfin-archive/jellyfin-desktop-qt)。
+3. Jellyfin Media Player 的桌面播放器架构源自
+   [Plex Media Player](https://github.com/plexinc/plex-media-player)。
 
-Open the "x86_x64 Cross Tools Command Prompt for VS 2019". `cd` to the `build` directory. Run:
+这是个人维护和兼容性研究项目，不代表 Terminus-Media、Jellyfin 或 Emby
+官方立场，也不是这些项目的官方客户端。Emby、Jellyfin、Plex 及其商标归
+各自权利人所有。
 
-```
-set PATH=%PATH%;C:\Program Files (x86)\WiX Toolset v3.11\bin
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=output -DCMAKE_MAKE_PROGRAM=ninja.exe -DQTROOT=C:/Qt/5.15.2/msvc2019_64 -DMPV_INCLUDE_DIR=mpv/include -DMPV_LIBRARY=mpv/mpv.dll -DCMAKE_INSTALL_PREFIX=output ..
-lib /def:mpv\mpv.def /out:mpv\mpv.dll.lib /MACHINE:X64
-ninja
-ninja windows_package
-```
+## 贡献原则
 
-## Building for MacOS
+- 问题报告需要说明 macOS 版本、Mac 架构、服务器类型和服务器版本。
+- 不要在 Issue、日志或截图中公开服务器地址、账号、令牌或私人媒体信息。
+- 修复应附带可复现问题、验证路径和未覆盖范围。
+- 优先解决真实连接和播放问题，不为形式完整引入无关重构。
 
-Install [QT 5.15.2](https://www.qt.io/download-thank-you?hsLang=en), remember to check `Qt WebEngine`.
+## 许可证
 
-Then run the following commands (replace <QT_DIR> with your QT installation location):
+本项目沿用上游的 GNU General Public License v2.0。详情见
+[LICENSE](LICENSE)。
 
-```bash
-brew install mpv ninja
-./download_webclient.sh
-cd build
-cmake -GNinja -DQTROOT=<QT_DIR> -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=output ..
-ninja install
-```
-
-To create redistributable bundle, some library paths need to be fixed. At the project root directory, run:
-
-```bash
-python3 ./scripts/fix-install-names.py ./build/output/Jellyfin\ Media\ Player.app
-```
-
-## Log File Location
-
- - Windows: `%LOCALAPPDATA%\JellyfinMediaPlayer\logs`
- - Linux: `~/.local/share/jellyfinmediaplayer/logs/`
- - Linux (Flatpak): `~/.var/app/com.github.iwalton3.jellyfin-media-player/data/jellyfinmediaplayer/logs/`
- - macOS: `~/Library/Logs/Jellyfin Media Player/`
-
-## Config File Location
-
-The main configuration file is called `jellyfinmediaplayer.conf`. You can also add a `mpv.conf` to configure MPV directly.
-
- - Windows: `%LOCALAPPDATA%\JellyfinMediaPlayer\`
- - Linux: `~/.local/share/jellyfinmediaplayer/`
- - Linux (Flatpak): `~/.var/app/com.github.iwalton3.jellyfin-media-player/data/jellyfinmediaplayer/`
- - macOS: `~/Library/Application Support/Jellyfin Media Player/`
-
-## Web Debugger
-
-To get browser devtools, use remote debugging.
-
- - Run the application with the command argument `--remote-debugging-port=9222`.
- - Open Chromium or Google Chrome.
- - Navigate to `chrome://inspect/#devices`.
- - You can now access the developer tools.
-
-If you have problems:
-
- - Make sure "Discover Network Targets" is checked.
- - Make sure `localhost:9222` is in the list under "Configure...".
- - Make sure `--remote-debugging-port=9222` is specified correctly.
-
-## License
-
-Terminus Media Player is based on Jellyfin Media Player.
-Jellyfin Media Player is licensed under GPL v2. See the ``LICENSE`` file.
-Licenses of dependencies are summarized under ``resources/misc/licenses.txt``.
-This file can also be printed at runtime when using the ``--licenses`` option.
+对上游项目的修改、再发布和衍生版本应继续遵守原项目及其依赖的许可证与
+署名要求。

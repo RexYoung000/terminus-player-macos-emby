@@ -13,7 +13,8 @@
 ## 当前状态
 
 - 原始项目源码已从 `Terminus-Media/jellyfin-media-player` 克隆。
-- 工作分支为 `codex/emby-4.8-compatibility-fix`。
+- 个人维护仓库以 `main` 作为默认分支；第三方上游保留为 `upstream`，
+  便于后续审查和同步来源变化。
 - 已通过成品应用二进制补丁解决 macOS 启动崩溃，修复版保存在
   `artifacts/TerminusPlayer-1.7.1-macos-startup-fixed.dmg`。
 - 服务器、HTTPS、DNS 和 443 端口均已确认正常。
